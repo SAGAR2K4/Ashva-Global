@@ -4,22 +4,11 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import WhatsAppButton from "./components/WhatsAppButton";
 
-import Hero from "./components/Hero";
-import ProductRangeHero from "./components/ProductRangeHero";
-
+import Home from "./pages/Home";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Products from "./pages/Products";
 
-function Home() {
-  return (
-    <>
-      <Hero />
-      <About/>
-      <ProductRangeHero />
-    </>
-  );
-}
 
 export default function App() {
   return (
