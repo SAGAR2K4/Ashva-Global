@@ -1,40 +1,27 @@
-import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { useInView } from 'react-intersection-observer';
 
-// Refactored product data structurally aligning with your specifications
 const PRODUCT_DATA = {
   shirtingFabrics: [
-    // Uniform Sub-category
     { name: 'Oxford', subCategory: 'Uniform', compositions: ['Poly Cotton (PC)', '100% Cotton'], description: 'Classic durable oxford weave ideal for structured uniforms.' },
     { name: 'Filafil', subCategory: 'Uniform', compositions: ['Poly Cotton (PC)', '100% Cotton'], description: 'End-on-end weave providing a subtle patterned depth for office attire.' },
     { name: 'Chambray', subCategory: 'Uniform', compositions: ['Poly Cotton (PC)', '100% Cotton'], description: 'Soft, lightweight canvas feel offering stylish uniformity.' },
     { name: 'Poplin', subCategory: 'Uniform', compositions: ['Poly Cotton (PC)', '100% Cotton'], description: 'Smooth, durable plain weave, highly reliable for regular workwear.' },
-    
-    // Micro Stripe & Checks
     { name: 'PC Stripe', subCategory: 'Micro Stripe & Checks', compositions: ['Poly Cotton (PC)'], description: 'Crisp micro stripe patterns engineered using poly-cotton blends.' },
     { name: 'PC Checks', subCategory: 'Micro Stripe & Checks', compositions: ['Poly Cotton (PC)'], description: 'Fine miniature checkered grids for versatile formal styling.' },
     { name: '100% Cotton Check & Stripe', subCategory: 'Micro Stripe & Checks', compositions: ['100% Cotton'], description: 'Premium fine checks and stripes in pure natural cotton threads.' },
-    
-    // White Dobby & Yarn Dyed Dobby
     { name: 'White & Piece Dyed Dobby', subCategory: 'White Dobby', compositions: ['Poly Cotton (PC)', '100% Cotton'], description: 'Exquisite white-on-white textures and uniformly dyed dimensional dobby patterns.' },
     { name: 'PC Dobby', subCategory: 'Yarn Dyed Dobby', compositions: ['Poly Cotton (PC)'], description: 'Rich structural patterns woven with pre-dyed polyester-cotton yarn.' },
     { name: '100% Cotton Dobby', subCategory: 'Yarn Dyed Dobby', compositions: ['100% Cotton'], description: 'Luxurious geometric self-textures woven from pure cotton fibers.' },
-    
-    // Plain & Print
     { name: 'Classic Plain', subCategory: 'Plain', compositions: ['100% Cotton', 'Poly Cotton (PC)', 'Poly Viscose', '100% Polyester'], description: 'Solid foundational shirting fabrics with reliable drapes.' },
     { name: 'Fashion Print', subCategory: 'Print', compositions: ['100% Cotton', 'Poly Cotton (PC)', 'Poly Viscose', '100% Polyester'], description: 'Vibrant, high-definition prints applied over comfortable base textiles.' },
-    
-    // Specialty Weaves
     { name: 'Jacquard', subCategory: 'Jacquard', compositions: ['Poly Cotton (PC)', '100% Cotton'], description: 'Complex, intricate patterns woven directly into the fabric matrix.' },
     { name: 'Embroidery', subCategory: 'Embroidery', compositions: ['Poly Cotton (PC)', '100% Cotton'], description: 'Decoratively embroidered surfaces giving custom elevated appeal.' },
-    
-    // Fancy Look
     { name: 'Linen Look', subCategory: 'Fancy', compositions: ['Cotton Linen', '100% Linen'], description: 'Relaxed horizontal slub effects replicating authentic linen properties.' },
     { name: 'Jordan', subCategory: 'Fancy', compositions: ['100% Cotton', 'CVC'], description: 'High-end specialty texture offering contemporary retail styling.' },
     { name: 'Rich Cotton', subCategory: 'Fancy', compositions: ['100% Cotton', 'CVC'], description: 'Heavy cotton luxury feel optimized for premium structure.' },
     { name: 'Rich Linen Look', subCategory: 'Fancy', compositions: ['Cotton Linen'], description: 'Dense, premium weave offering the structural elegance of high-end linen.' },
-    
-    // Cationic
     { name: 'Cationic Premium', subCategory: 'Cationic', compositions: ['Poly Cotton (PC)', '100% Polyester'], description: 'Striking two-tone heathered color effect using specialized dye fibers.' }
   ],
   suitingFabrics: [
@@ -52,29 +39,43 @@ const CATEGORIES = [
   { id: 'suitingFabrics', name: 'Suiting', icon: '🤵' },
 ];
 
-// Global dynamic compositions gathered from your handwritten catalog lists
 const COMPOSITIONS = [
-  "All",
-  "100% Cotton",
-  "Poly Cotton (PC)",
-  "100% Polyester",
-  "CVC",
-  "Viscose",
-  "Poly Viscose",
-  "Cotton Linen",
-  "100% Linen",
-  "Wool",
-  "Lycra"
+  "All", "100% Cotton", "Poly Cotton (PC)", "100% Polyester", "CVC", 
+  "Viscose", "Poly Viscose", "Cotton Linen", "100% Linen", "Wool", "Lycra"
 ];
+
+const ScrollAnimatedCard = ({ children, index }) => {
+  const controls = useAnimation();
+  const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.1 });
+
+  useEffect(() => {
+    if (inView) {
+      controls.start('visible');
+    }
+  }, [controls, inView]);
+
+  return (
+    <motion.div
+      ref={ref}
+      initial="hidden"
+      animate={controls}
+      variants={{
+        visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94], delay: (index % 4) * 0.04 } },
+        hidden: { opacity: 0, y: 30 }
+      }}
+      className="h-full"
+    >
+      {children}
+    </motion.div>
+  );
+};
 
 const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedComposition, setSelectedComposition] = useState('All');
 
-  // Calculates matching filtered fabrics efficiently
   const filteredProducts = useMemo(() => {
     let baseProducts = [];
-    
     if (selectedCategory === 'all') {
       baseProducts = Object.entries(PRODUCT_DATA).flatMap(([catId, items]) =>
         items.map(item => ({ ...item, categoryId: catId }))
@@ -82,65 +83,80 @@ const Products = () => {
     } else {
       baseProducts = PRODUCT_DATA[selectedCategory].map(item => ({ ...item, categoryId: selectedCategory }));
     }
-
     if (selectedComposition !== 'All') {
-      return baseProducts.filter(product => 
-        product.compositions.includes(selectedComposition)
-      );
+      return baseProducts.filter(product => product.compositions.includes(selectedComposition));
     }
-    
     return baseProducts;
   }, [selectedCategory, selectedComposition]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Decorative Top Banner */}
-      <div className="bg-[#0A1F44] pt-16 pb-24 px-6 text-center text-white">
-        <h1 className="text-3xl md:text-4xl font-black uppercase tracking-wider mb-2">Premium Fabric Catalog</h1>
-        <p className="text-gray-400 text-sm max-w-xl mx-auto">Explore high-quality industrial, uniform, and corporate shirting & suiting configurations.</p>
+    <div className="min-h-screen bg-slate-950 text-slate-300 font-sans selection:bg-amber-500/30 selection:text-amber-200">
+      
+      {/* HEADER SECTION */}
+      <div className="relative text-center pt-25 pb-20 bg-linear-to-b from-slate-900 via-slate-950 to-slate-950 border-b border-slate-900 overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-125 h-50 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: -15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="relative space-y-2 px-6"
+        >
+          <h1 className="text-3xl md:text-4xl font-serif font-light tracking-[0.08em] text-white">
+            Premium Fabric <span className="font-sans font-semibold italic bg-linear-to-r from-amber-400 via-yellow-200 to-amber-500 bg-clip-text text-transparent">Catalog</span>
+          </h1>
+          <div className="w-12 h-px bg-amber-500/30 mx-auto my-2" />
+          <p className="text-xs text-slate-400 max-w-xl mx-auto font-light leading-relaxed">
+            Explore high-quality industrial, uniform, and corporate shirting & suiting configurations.
+          </p>
+        </motion.div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 -mt-12 pb-20">
+      <div className="max-w-7xl mx-auto px-6 -mt-10 pb-20">
         
-        {/* Core Control Center: Navigation & Composition Filters Together */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 mb-12 border border-gray-100">
-          
-          {/* Main Category Bar */}
-          <div className="mb-6 pb-6 border-b border-gray-100">
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Select Product Department</div>
+        {/* CONTROL FILTER BAR */}
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="bg-slate-900/40 border border-slate-900 rounded-2xl shadow-2xl p-5 mb-10 backdrop-blur-md"
+        >
+          {/* Categories */}
+          <div className="mb-5 pb-5 border-b border-slate-900">
+            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2.5">Select Product Department</div>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => {
                     setSelectedCategory(cat.id);
-                    setSelectedComposition('All'); // Reset composition on department toggle
+                    setSelectedComposition('All');
                   }}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs uppercase tracking-wider transition-all duration-300 transform active:scale-95 ${
                     selectedCategory === cat.id
-                      ? 'bg-[#1E3A8A] text-white shadow-md'
-                      : 'text-[#0A1F44] bg-gray-50 hover:bg-gray-100'
+                      ? 'bg-linear-to-r from-amber-500 to-amber-600 text-slate-950 font-semibold shadow-lg shadow-amber-500/10'
+                      : 'text-slate-300 bg-slate-950 border border-slate-900 hover:border-amber-500/20'
                   }`}
                 >
-                  <span className="text-lg">{cat.icon}</span>
-                  <span className="whitespace-nowrap text-xs uppercase tracking-wide">{cat.name}</span>
+                  <span className="text-sm">{cat.icon}</span>
+                  <span>{cat.name}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Dynamic Fabric Composition Filter Row */}
+          {/* Compositions */}
           <div>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Filter by Blend/Composition</div>
-            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
+            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2.5">Filter by Blend/Composition</div>
+            <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
               {COMPOSITIONS.map((comp) => (
                 <button
                   key={comp}
                   onClick={() => setSelectedComposition(comp)}
-                  className={`px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap border transition-all ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap border transition-all duration-300 ${
                     selectedComposition === comp
-                      ? 'bg-[#3B82F6] text-white border-[#3B82F6] shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/40'
+                      : 'bg-slate-950 text-slate-400 border-slate-900 hover:text-slate-200 hover:border-slate-800'
                   }`}
                 >
                   {comp}
@@ -148,107 +164,92 @@ const Products = () => {
               ))}
             </div>
           </div>
+        </motion.div>
 
-        </div>
-
-        {/* Results Info Counter */}
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-xl font-black text-[#0A1F44] uppercase tracking-wide flex items-center gap-3">
-            {CATEGORIES.find(c => c.id === selectedCategory)?.name} 
-            {selectedComposition !== 'All' && <span className="text-gray-400 font-normal normal-case">({selectedComposition})</span>}
-            <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
-              {filteredProducts.length} Blends Found
+        {/* Counter Meter */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-sm font-serif font-light text-white tracking-wide flex items-center gap-3">
+            {CATEGORIES.find(c => c.id === selectedCategory)?.name}
+            {selectedComposition !== 'All' && <span className="text-slate-500 font-sans font-normal text-xs">({selectedComposition})</span>}
+            <span className="text-[10px] font-sans font-medium text-amber-400 bg-amber-500/5 px-2.5 py-0.5 rounded-full border border-amber-500/10 tracking-wider">
+              {filteredProducts.length} Options
             </span>
           </h2>
         </div>
 
-        {/* Product Component Grid */}
-        <motion.div 
-          layout
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-        >
+        {/* RECONFIGURED MINIMAL COMPACT CARD GRID (IMAGE, NAME, COMPOSITIONS) */}
+        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <AnimatePresence mode="popLayout">
             {filteredProducts.map((product, index) => (
-              <motion.div
-                layout
-                key={`${product.categoryId}-${product.name}`}
-                initial={{ opacity: 0, scale: 0.93 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.93 }}
-                transition={{ duration: 0.25, delay: index * 0.02 }}
-                className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col h-full overflow-hidden"
-              >
-                {/* Visual Header */}
-                <div className="h-32 bg-linear-to-br from-[#1E3A8A] to-[#0A1F44] p-5 relative flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-black text-white/60 bg-white/10 backdrop-blur-md px-2 py-1 rounded uppercase tracking-widest">
+              <ScrollAnimatedCard key={`${product.categoryId}-${product.name}`} index={index}>
+                <motion.div
+                  layout
+                  className="group bg-slate-900/30 border border-slate-900 rounded-xl overflow-hidden shadow-lg hover:border-amber-500/20 transition-all duration-300 flex flex-col h-full transform hover:-translate-y-0.5"
+                >
+                  {/* ELEMENT 1: PRODUCT IMAGE FRAME CONTAINER */}
+                  <div className="h-44 w-full bg-slate-950 relative flex items-center justify-center overflow-hidden border-b border-slate-900/60">
+                    <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 z-10" />
+                    
+                    {/* Architectural Grid Micro-weave representing premium textile threads */}
+                    <div className="absolute inset-0 opacity-[0.12] bg-[linear-gradient(to_right,#f59e0b_1px,transparent_1px),linear-gradient(to_bottom,#f59e0b_1px,transparent_1px)] bg-size-[10px_10px] transition-transform duration-700 group-hover:scale-105" />
+                    
+                    {/* Visual Badge mapping matching category markers */}
+                    <span className="absolute top-3 left-3 z-20 text-[9px] font-semibold text-amber-400 bg-amber-500/5 border border-amber-500/10 px-2 py-0.5 rounded uppercase tracking-wider">
                       {product.subCategory}
                     </span>
-                    <div className="text-white opacity-40 text-xl">
+
+                    {/* Minimal Center Icon Matrix */}
+                    <div className="text-slate-800 text-5xl select-none opacity-40 transform group-hover:scale-110 group-hover:opacity-50 transition-all duration-500 z-0">
                       {product.categoryId === 'shirtingFabrics' ? '👔' : '🤵'}
                     </div>
                   </div>
-                  
-                  <div>
-                    <h3 className="font-bold text-white text-lg tracking-tight leading-tight group-hover:text-[#3B82F6] transition-colors">
-                      {product.name}
-                    </h3>
-                  </div>
-                </div>
 
-                {/* Body Content */}
-                <div className="p-5 flex flex-col grow justify-between">
-                  <div className="grow">
-                    <p className="text-gray-500 text-xs leading-relaxed line-clamp-3 mb-4">
-                      {product.description}
-                    </p>
-                  </div>
-
-                  <div>
-                    {/* Embedded Pill Badges tracking your handwritten mix metrics */}
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Available in:</div>
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {product.compositions.map((comp) => (
-                        <span 
-                          key={comp} 
-                          className={`text-[10px] px-2 py-1 rounded-md font-medium border ${
-                            selectedComposition === comp 
-                              ? 'bg-blue-500 text-white border-blue-500' 
-                              : 'bg-gray-50 text-gray-600 border-gray-100'
-                          }`}
-                        >
-                          {comp}
-                        </span>
-                      ))}
+                  {/* INFO PANEL BOX */}
+                  <div className="p-4 flex flex-col justify-between grow space-y-3 bg-slate-900/10">
+                    
+                    {/* ELEMENT 2: PRODUCT TITLE */}
+                    <div>
+                      <h3 className="font-serif font-light text-white text-base tracking-wide group-hover:text-amber-400 transition-colors duration-300 line-clamp-1">
+                        {product.name}
+                      </h3>
                     </div>
 
-                    {/* Interactive Action Footer */}
-                    <div className="pt-3 border-t border-gray-50 flex items-center justify-between">
-                      <button className="text-[#1E3A8A] text-[11px] font-black uppercase tracking-widest flex items-center gap-1 group-hover:gap-2 transition-all">
-                        Enquire Specifications 
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
+                    {/* ELEMENT 3: AVAILABLE COMPOSITIONS */}
+                    <div className="space-y-1.5">
+                      <div className="text-[9px] font-medium text-slate-500 uppercase tracking-wider">Available In</div>
+                      <div className="flex flex-wrap gap-1">
+                        {product.compositions.map((comp) => (
+                          <span 
+                            key={comp} 
+                            className={`text-[9px] px-2 py-0.5 rounded-md border transition-all duration-300 whitespace-nowrap ${
+                              selectedComposition === comp 
+                                ? 'bg-amber-500 text-slate-950 font-semibold border-amber-500' 
+                                : 'bg-slate-950 text-slate-400 border-slate-900'
+                            }`}
+                          >
+                            {comp}
+                          </span>
+                        ))}
+                      </div>
                     </div>
+
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              </ScrollAnimatedCard>
             ))}
           </AnimatePresence>
         </motion.div>
 
-        {/* Empty Search Fallback State */}
+        {/* Fallback Empty Window */}
         {filteredProducts.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
-            <span className="text-5xl block mb-3 opacity-30">🧵</span>
-            <h3 className="text-lg font-bold text-[#0A1F44]">No Fabric Configurations Matched</h3>
-            <p className="text-gray-400 text-sm max-w-xs mx-auto mt-1">This specific blend isn't assigned to the {CATEGORIES.find(c => c.id === selectedCategory)?.name} category.</p>
+          <div className="text-center py-16 bg-slate-900/10 border border-slate-900 rounded-xl">
+            <span className="text-3xl block mb-2 opacity-40">🧵</span>
+            <h3 className="text-sm font-serif font-light text-white">No Fabric Configurations Matched</h3>
             <button 
               onClick={() => { setSelectedCategory('all'); setSelectedComposition('All'); }}
-              className="mt-5 text-xs bg-gray-900 text-white font-bold px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+              className="mt-4 text-[10px] uppercase tracking-wider bg-slate-900 border border-slate-800 text-amber-400 px-4 py-2 rounded-xl hover:border-amber-500/30 transition-all"
             >
-              Reset Global Filters
+              Reset Filters
             </button>
           </div>
         )}
